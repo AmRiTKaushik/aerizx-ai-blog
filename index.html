@@ -685,26 +685,66 @@ async function generateBlog(){
 
   const sys=`You are an elite AI blog writer in the top 1% of professional content creators. Write publication-quality, deeply insightful, SEO-optimized blog posts that sound 100% human.\n\nRULES:\n- Write in ${lang} with native cultural fluency\n- Target length: ${lenMap[len]}\n- Tone: ${tone}\n- Target audience: ${audience||'general business professionals'}\n- Use Markdown: # H1, ## H2, ### H3, **bold**, *italic*\n- Start with a powerful curiosity-driven headline\n- Write a gripping 2-line hook\n- Organize into clear H2/H3 sections\n- Include examples, analogies, statistics\n- End with a strong action-driven conclusion\n- Zero fluff — every sentence delivers value`;
 
-  // DEMO MODE (NO API)
+  // SMART DEMO ENGINE
+let baseContent = "";
+
+const t = topic.toLowerCase();
+
+// 🔥 CATEGORY DETECTION
+if(t.includes("ai") || t.includes("artificial intelligence")){
+  baseContent = "Artificial Intelligence is transforming industries by automating processes and enhancing decision-making.";
+}
+else if(t.includes("fitness") || t.includes("gym") || t.includes("workout")){
+  baseContent = "Fitness plays a crucial role in maintaining physical and mental well-being in today's fast-paced lifestyle.";
+}
+else if(t.includes("finance") || t.includes("money") || t.includes("investment")){
+  baseContent = "Finance is the backbone of economic growth, helping individuals and businesses manage and grow their wealth.";
+}
+else if(t.includes("health") || t.includes("healthcare")){
+  baseContent = "Healthcare is evolving rapidly with new technologies and approaches improving patient outcomes and accessibility.";
+}
+else{
+  baseContent = `${topic} is becoming an important area of focus in modern industries and everyday life.`;
+}
+
+// 🌍 LANGUAGE HANDLING
+let intro = "";
+let conclusion = "";
+
+if(lang === "Hindi"){
+  intro = `${topic} आज के समय में तेजी से महत्वपूर्ण होता जा रहा है।`;
+  conclusion = `${topic} भविष्य को आकार देने वाली एक शक्तिशाली दिशा है।`;
+}
+else if(lang === "Spanish"){
+  intro = `${topic} se está volviendo cada vez más importante en el mundo actual.`;
+  conclusion = `${topic} está dando forma al futuro de manera significativa.`;
+}
+else{
+  intro = `${topic} is becoming one of the most talked-about topics today.`;
+  conclusion = `${topic} is shaping the future in powerful ways.`;
+}
+
+// 📝 FINAL BLOG
 const demoText = `# ${topic}
 
-Artificial Intelligence is rapidly transforming industries across the globe. From automating repetitive tasks to enhancing creativity, AI is redefining how businesses operate.
+${intro} ${baseContent}
 
-## Why This Matters
-AI is no longer a futuristic concept — it is actively shaping decision-making, customer experiences, and operational efficiency.
+## Why ${topic} Matters
+Understanding ${topic} helps individuals and businesses stay competitive and innovative.
 
 ## Key Benefits
-- Faster content creation
-- Improved productivity
-- Scalable solutions for businesses
+- Better efficiency  
+- Smarter decision-making  
+- Future-ready growth  
 
-## Real-World Impact
-Companies leveraging AI are seeing exponential growth in efficiency and innovation. Whether it's healthcare, finance, or marketing — AI is becoming the backbone.
+## Real-World Applications
+${topic} is being used across industries to improve systems, processes, and user experiences.
 
 ## Conclusion
-AI is not just a tool — it’s a competitive advantage. Businesses that adopt early will lead the future.
+${conclusion}
 
 *This is a demo AI-generated blog. Real AI integration coming soon.*`;
+
 
 ob.innerHTML = mdToHtml(demoText);
 
