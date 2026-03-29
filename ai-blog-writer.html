@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>aerizx — AI Blog Writer · Amrit & Co.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --glass-bg:rgba(255,255,255,0.09);
+  --glass-border:rgba(255,255,255,0.2);
+  --glass-hover:rgba(255,255,255,0.14);
+  --gold:#d4a843;--gold-light:#f0cc72;--gold-dim:rgba(212,168,67,0.4);
+  --white:#fff;--white-soft:rgba(255,255,255,0.88);
+  --white-dim:rgba(255,255,255,0.48);--white-muted:rgba(255,255,255,0.26);
+  --blur:blur(24px) saturate(160%);--blur-light:blur(14px) saturate(140%);
+  --shadow:0 8px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.1);
+  --shadow-hover:0 18px 60px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.16);
+  --radius:18px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+
+/* ═══════════════════════════════════════
+   PREMIUM CURSOR — angular corner brackets
+   A sharp camera-viewfinder / targeting reticle
+   No circles. Pure geometry.
+═══════════════════════════════════════ */
+*{cursor:none !important;}
+
+#cur{
+  position:fixed;z-index:999999;pointer-events:none;
+  width:24px;height:24px;
+  transform:translate(-50%,-50%);
+  will-change:left,top;
+}
+/* The four corner L-brackets drawn with box-shadow edges */
+#cur::before,#cur::after,
+#cur-b::before,#cur-b::after{
+  content:'';position:absolute;
+  width:8px;height:8px;
+  border-color:var(--gold);border-style:solid;
+  transition:width 0.3s cubic-bezier(0.23,1,0.32,1),
+             height 0.3s cubic-bezier(0.23,1,0.32,1),
+             border-color 0.25s,opacity 0.25s;
+}
+/* top-left */
+#cur::before{top:0;left:0;border-width:1.5px 0 0 1.5px;box-shadow:0 0 5px rgba(212,168,67,0.5);}
+/* top-right */
+#cur::after{top:0;right:0;border-width:1.5px 1.5px 0 0;box-shadow:0 0 5px rgba(212,168,67,0.5);}
+
+#cur-b{
+  position:fixed;z-index:999999;pointer-events:none;
+  width:24px;height:24px;
+  transform:translate(-50%,-50%);
+  will-change:left,top;
+}
+/* bottom-left */
+#cur-b::before{bottom:0;left:0;border-width:0 0 1.5px 1.5px;box-shadow:0 0 5px rgba(212,168,67,0.5);}
+/* bottom-right */
+#cur-b::after{bottom:0;right:0;border-width:0 1.5px 1.5px 0;box-shadow:0 0 5px rgba(212,168,67,0.5);}
+
+/* center dot */
+#cur-dot{
+  position:fixed;z-index:1000000;pointer-events:none;
+  width:3px;height:3px;border-radius:50%;
+  background:var(--gold);
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 6px rgba(212,168,67,1);
+  will-change:left,top;
+  transition:transform 0.1s,opacity 0.2s;
+}
+
+/* slow-following aura — large soft glow ring */
+#cur-aura{
+  position:fixed;z-index:99990;pointer-events:none;
+  width:80px;height:80px;border-radius:50%;
+  background:radial-gradient(circle,rgba(212,168,67,0.06) 0%,transparent 70%);
+  border:1px solid rgba(212,168,67,0.08);
+  transform:translate(-50%,-50%);
+  will-change:left,top;
+  transition:width 0.6s cubic-bezier(0.23,1,0.32,1),
+             height 0.6s cubic-bezier(0.23,1,0.32,1),
+             opacity 0.4s;
+}
+
+/* HOVER STATE — brackets expand outward, aura brightens */
+body.c-hov #cur,body.c-hov #cur-b{width:36px;height:36px;}
+body.c-hov #cur::before,body.c-hov #cur::after,
+body.c-hov #cur-b::before,body.c-hov #cur-b::after{
+  width:12px;height:12px;
+  border-color:var(--gold-light);
+  box-shadow:0 0 10px rgba(240,204,114,0.8);
+}
+body.c-hov #cur-aura{
+  width:110px;height:110px;
+  background:radial-gradient(circle,rgba(212,168,67,0.1) 0%,transparent 70%);
+  border-color:rgba(212,168,67,0.15);
+}
+
+/* CLICK STATE — brackets snap inward sharply */
+body.c-clk #cur,body.c-clk #cur-b{width:14px;height:14px;}
+body.c-clk #cur::before,body.c-clk #cur::after,
+body.c-clk #cur-b::before,body.c-clk #cur-b::after{
+  width:5px;height:5px;
+  border-color:#fff;
+  box-shadow:0 0 8px rgba(255,255,255,0.9);
+}
+body.c-clk #cur-dot{transform:translate(-50%,-50%) scale(2.5);background:var(--gold-light);}
+body.c-clk #cur-aura{opacity:0;}
+
+/* click shockwave */
+.c-wave{
+  position:fixed;z-index:99989;pointer-events:none;
+  width:4px;height:4px;border-radius:50%;
+  border:1px solid rgba(212,168,67,0.7);
+  transform:translate(-50%,-50%);
+  animation:cWave 0.6s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+@keyframes cWave{
+  0%{width:4px;height:4px;opacity:1;}
+  100%{width:70px;height:70px;opacity:0;}
+}
+
+/* ═══════════════════════════════════════
+   BASE
+═══════════════════════════════════════ */
+body{font-family:'Syne',sans-serif;color:var(--white);overflow-x:hidden;min-height:100vh;background:#040610;}
+
+/* VIDEO BG */
+.video-bg{position:fixed;inset:0;z-index:0;width:100%;height:100%;overflow:hidden;}
+.video-bg video{position:absolute;top:50%;left:50%;min-width:100%;min-height:100%;width:auto;height:auto;transform:translate(-50%,-50%);display:block;}
+.video-overlay{position:fixed;inset:0;z-index:1;background:linear-gradient(180deg,rgba(4,6,16,0.22) 0%,rgba(4,6,16,0.02) 40%,rgba(4,6,16,0.22) 100%);pointer-events:none;}
+.content-layer{position:relative;z-index:10;}
+
+/* AMRIT BANNER */
+.amrit-banner{text-align:center;padding:0.55rem 2rem;background:linear-gradient(90deg,transparent,rgba(212,168,67,0.14),transparent);border-bottom:1px solid rgba(212,168,67,0.2);font-family:'DM Mono',monospace;font-size:0.61rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(212,168,67,0.7);animation:fadeDown 0.6s ease both;}
+.amrit-banner b{color:var(--gold);}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.15rem 3rem;background:rgba(4,6,16,0.28);backdrop-filter:blur(32px) saturate(180%);-webkit-backdrop-filter:blur(32px) saturate(180%);border-bottom:1px solid rgba(255,255,255,0.12);animation:fadeDown 0.6s 0.1s ease both;}
+.logo{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:0.12em;text-transform:lowercase;color:var(--gold);display:flex;align-items:center;gap:0.5rem;}
+.logo-gem{width:8px;height:8px;background:var(--gold);border-radius:2px;transform:rotate(45deg);animation:pulse 2.5s ease-in-out infinite;flex-shrink:0;}
+.nav-links{display:flex;gap:2rem;align-items:center;}
+.nav-links a{font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--white-dim);text-decoration:none;transition:color 0.3s;}
+.nav-links a:hover{color:var(--gold);}
+.nav-cta{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#080500;border:none;padding:0.6rem 1.5rem;font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border-radius:6px;transition:all 0.3s;box-shadow:0 4px 20px rgba(212,168,67,0.3);}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(212,168,67,0.5);}
+
+/* HERO — staggered entrance all on page load */
+.hero{min-height:95vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6rem 2rem 4rem;text-align:center;}
+.hero-tag{display:inline-flex;align-items:center;gap:0.6rem;background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.28);backdrop-filter:blur(12px);padding:0.4rem 1.2rem;margin-bottom:2.5rem;border-radius:50px;font-family:'DM Mono',monospace;font-size:0.67rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold-light);animation:fadeUp 0.8s 0.2s both;}
+.hero-tag-dot{width:6px;height:6px;background:var(--gold);border-radius:50%;animation:pulse 2s infinite;}
+.hero-headline{font-family:'Cormorant Garamond',serif;font-size:clamp(3.5rem,8.5vw,8.5rem);font-weight:300;line-height:0.93;letter-spacing:-0.02em;animation:fadeUp 0.8s 0.35s both;text-shadow:0 4px 40px rgba(0,0,0,0.6);}
+.hero-headline em{font-style:italic;color:var(--gold);}
+.hero-headline .line2{display:block;font-weight:600;}
+.hero-brand{font-family:'Syne',sans-serif;font-weight:800;letter-spacing:0.08em;color:var(--gold);font-style:normal;}
+.hero-sub{max-width:580px;margin:2rem auto 3rem;font-family:'Cormorant Garamond',serif;font-size:1.3rem;line-height:1.75;color:var(--white-dim);animation:fadeUp 0.8s 0.5s both;}
+.hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;animation:fadeUp 0.8s 0.65s both;}
+.hero-stats{display:flex;margin-top:5rem;animation:fadeUp 0.8s 0.8s both;background:var(--glass-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);flex-wrap:wrap;}
+
+.btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#060400;border:none;padding:1rem 2.4rem;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border-radius:8px;transition:all 0.35s;box-shadow:0 6px 30px rgba(212,168,67,0.35);}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 12px 45px rgba(212,168,67,0.55);}
+.btn-glass{background:var(--glass-bg);backdrop-filter:var(--blur-light);-webkit-backdrop-filter:var(--blur-light);color:var(--white-soft);border:1px solid var(--glass-border);padding:1rem 2.4rem;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;border-radius:8px;transition:all 0.35s;}
+.btn-glass:hover{background:var(--glass-hover);transform:translateY(-3px);border-color:var(--gold-dim);}
+
+.stat{padding:1.6rem 2.4rem;text-align:center;border-right:1px solid rgba(255,255,255,0.07);transition:background 0.3s;flex:1;min-width:110px;}
+.stat:last-child{border-right:none;}
+.stat:hover{background:rgba(255,255,255,0.05);}
+.stat-num{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:600;color:var(--gold);line-height:1;}
+.stat-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--white-muted);margin-top:0.35rem;}
+
+.divider{border:none;height:1px;margin:0 3rem;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);}
+
+/* SECTIONS — all visible immediately, staggered on load */
+.section{padding:6rem 3rem;max-width:1200px;margin:0 auto;}
+.section-tag{font-family:'DM Mono',monospace;font-size:0.63rem;letter-spacing:0.17em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem;}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3.4rem);font-weight:300;line-height:1.15;margin-bottom:1rem;}
+.section-title strong{font-weight:600;}
+.section-desc{color:var(--white-dim);font-size:1.04rem;line-height:1.7;max-width:500px;}
+
+/* animate-in class — triggered by JS with staggered delays on load */
+.ani{opacity:0;transform:translateY(28px);transition:opacity 0.75s ease,transform 0.75s ease;}
+.ani.in{opacity:1;transform:translateY(0);}
+
+/* FEATURES */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin-top:3.5rem;}
+.feature-card{background:var(--glass-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--radius);padding:2.2rem;box-shadow:var(--shadow);transition:all 0.4s cubic-bezier(0.23,1,0.32,1);position:relative;overflow:hidden;}
+.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(212,168,67,0.5),transparent);transform:scaleX(0);transform-origin:center;transition:transform 0.4s;}
+.feature-card:hover{background:var(--glass-hover);transform:translateY(-4px);box-shadow:var(--shadow-hover),0 0 40px rgba(212,168,67,0.08);border-color:rgba(212,168,67,0.25);}
+.feature-card:hover::before{transform:scaleX(1);}
+.feature-icon{font-size:1.4rem;margin-bottom:1.2rem;width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.2);border-radius:10px;color:var(--gold);}
+.feature-title{font-size:1rem;font-weight:600;letter-spacing:0.02em;margin-bottom:0.6rem;color:var(--white-soft);}
+.feature-desc{font-size:0.87rem;color:var(--white-dim);line-height:1.65;}
+
+/* WRITER */
+.writer-wrap{max-width:1140px;margin:0 auto;padding:5rem 3rem;}
+.writer-header{text-align:center;margin-bottom:3rem;}
+.writer-panel{display:grid;grid-template-columns:1fr 1.3fr;gap:1rem;}
+.writer-input-side{background:rgba(4,6,16,0.28);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid rgba(255,255,255,0.18);border-radius:var(--radius);padding:2.5rem;display:flex;flex-direction:column;gap:1.4rem;box-shadow:var(--shadow);}
+.writer-output-side{background:rgba(3,5,12,0.3);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid rgba(255,255,255,0.18);border-radius:var(--radius);padding:2.5rem;display:flex;flex-direction:column;box-shadow:var(--shadow);min-height:640px;position:relative;overflow:hidden;}
+.writer-output-side::before{content:'';position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle,rgba(212,168,67,0.05) 0%,transparent 70%);pointer-events:none;}
+
+.field-label{font-family:'DM Mono',monospace;font-size:0.61rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:0.5rem;}
+.field-input,.field-textarea,.field-select{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--white-soft);padding:0.75rem 1rem;font-family:'Syne',sans-serif;font-size:0.88rem;outline:none;transition:all 0.3s;border-radius:8px;appearance:none;}
+.field-input:focus,.field-textarea:focus,.field-select:focus{border-color:rgba(212,168,67,0.5);background:rgba(212,168,67,0.07);box-shadow:0 0 0 3px rgba(212,168,67,0.07);}
+.field-input::placeholder,.field-textarea::placeholder{color:rgba(255,255,255,0.2);}
+.field-textarea{resize:vertical;min-height:80px;}
+.field-select option{background:#0c0f20;color:#fff;}
+.fields-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+
+.tone-pills{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.4rem;}
+.tone-pill{padding:0.35rem 0.9rem;font-size:0.71rem;letter-spacing:0.05em;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--white-muted);transition:all 0.25s;font-family:'Syne',sans-serif;border-radius:50px;}
+.tone-pill.active,.tone-pill:hover{border-color:rgba(212,168,67,0.5);color:var(--gold);background:rgba(212,168,67,0.1);}
+
+.generate-btn{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#060400;border:none;padding:1rem;width:100%;font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;transition:all 0.35s;border-radius:10px;margin-top:auto;display:flex;align-items:center;justify-content:center;gap:0.6rem;box-shadow:0 4px 25px rgba(212,168,67,0.3);}
+.generate-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 40px rgba(212,168,67,0.5);}
+.generate-btn:disabled{opacity:0.5;transform:none;}
+
+.output-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.07);}
+.output-title{font-family:'DM Mono',monospace;font-size:0.61rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);}
+.output-actions{display:flex;gap:0.5rem;flex-wrap:wrap;}
+.icon-btn{height:30px;padding:0 0.8rem;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-dim);display:flex;align-items:center;justify-content:center;font-size:0.72rem;transition:all 0.25s;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.06em;gap:0.35rem;white-space:nowrap;}
+.icon-btn:hover{border-color:rgba(212,168,67,0.4);color:var(--gold);background:rgba(212,168,67,0.08);}
+.pdf-btn{background:rgba(212,168,67,0.12);border-color:rgba(212,168,67,0.3);color:var(--gold);}
+.pdf-btn:hover{background:rgba(212,168,67,0.22);border-color:var(--gold);}
+
+.output-body{flex:1;overflow-y:auto;font-family:'Cormorant Garamond',serif;line-height:1.85;color:rgba(255,255,255,0.84);scrollbar-width:thin;scrollbar-color:rgba(212,168,67,0.25) transparent;}
+.output-body::-webkit-scrollbar{width:3px;}
+.output-body::-webkit-scrollbar-thumb{background:rgba(212,168,67,0.25);}
+.output-body h1{font-size:1.75rem;font-weight:600;color:var(--white);margin-bottom:1rem;line-height:1.25;font-family:'Cormorant Garamond',serif;}
+.output-body h2{font-size:1rem;font-weight:600;color:var(--gold-light);margin:1.5rem 0 0.5rem;font-family:'Syne',sans-serif;letter-spacing:0.04em;}
+.output-body h3{font-size:0.9rem;font-weight:600;color:var(--white-dim);margin:1rem 0 0.4rem;font-family:'Syne',sans-serif;}
+.output-body p{margin-bottom:0.85rem;font-size:1.06rem;}
+.output-body strong{color:var(--white);font-weight:600;}
+.output-body em{color:var(--gold-light);font-style:italic;}
+.output-body ul{margin-left:1.2rem;margin-bottom:0.85rem;}
+.output-body li{margin-bottom:0.3rem;font-size:1.02rem;}
+.output-placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--white-muted);gap:1rem;}
+.placeholder-icon{font-size:2.8rem;opacity:0.2;}
+.placeholder-text{font-size:0.87rem;line-height:1.65;max-width:260px;color:var(--white-muted);}
+.output-meta{margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:1.5rem;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;color:var(--white-muted);text-transform:uppercase;}
+.typing-cursor{display:inline-block;width:2px;height:1.1em;background:var(--gold);margin-left:2px;animation:blink 0.7s infinite;vertical-align:text-bottom;}
+.spinner{width:16px;height:16px;border:2px solid rgba(6,4,0,0.25);border-top-color:rgba(6,4,0,0.8);border-radius:50%;animation:spin 0.7s linear infinite;}
+
+/* LANGUAGES */
+.lang-grid{display:flex;flex-wrap:wrap;gap:0.7rem;margin-top:2rem;}
+.lang-badge{padding:0.5rem 1.2rem;background:var(--glass-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-border);font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--white-dim);transition:all 0.3s;border-radius:8px;}
+.lang-badge:hover{border-color:rgba(212,168,67,0.4);color:var(--gold);background:rgba(212,168,67,0.08);}
+
+/* HOW IT WORKS */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:3rem;}
+.step-card{background:var(--glass-bg);backdrop-filter:var(--blur-light);-webkit-backdrop-filter:var(--blur-light);border:1px solid var(--glass-border);border-radius:var(--radius);padding:2rem;box-shadow:var(--shadow);transition:all 0.4s;}
+.step-card:hover{background:var(--glass-hover);transform:translateY(-4px);}
+.step-num{font-family:'Cormorant Garamond',serif;font-size:4rem;font-weight:600;color:rgba(212,168,67,0.14);line-height:1;margin-bottom:-0.5rem;}
+.step-title{font-size:1rem;font-weight:600;margin-bottom:0.5rem;color:var(--white-soft);}
+.step-desc{font-size:0.85rem;color:var(--white-dim);line-height:1.65;}
+
+/* FOOTER */
+footer{position:relative;z-index:10;background:rgba(3,5,12,0.35);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border-top:1px solid rgba(255,255,255,0.12);padding:2rem 3rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+.footer-logo{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;letter-spacing:0.12em;text-transform:lowercase;color:var(--gold);}
+.footer-amrit{font-family:'DM Mono',monospace;font-size:0.61rem;letter-spacing:0.15em;color:var(--gold);text-transform:uppercase;}
+.footer-amrit span{color:var(--white-muted);}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.59rem;letter-spacing:0.08em;color:var(--white-muted);}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;right:2rem;z-index:9998;background:rgba(8,10,20,0.92);backdrop-filter:blur(20px);border:1px solid rgba(212,168,67,0.3);padding:0.9rem 1.5rem;color:var(--white-soft);border-radius:10px;font-family:'DM Mono',monospace;font-size:0.71rem;letter-spacing:0.08em;transform:translateY(80px);opacity:0;transition:all 0.45s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 8px 40px rgba(0,0,0,0.5);}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* KEYFRAMES */
+@keyframes fadeDown{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1) rotate(45deg);}50%{opacity:0.5;transform:scale(0.8) rotate(45deg);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* MOBILE */
+@media(max-width:768px){
+  *{cursor:auto !important;}
+  #cur,#cur-b,#cur-dot,#cur-aura{display:none;}
+  nav{padding:1rem 1.5rem;}.nav-links{display:none;}
+  .section{padding:4rem 1.5rem;}.writer-panel{grid-template-columns:1fr;}
+  .writer-wrap{padding:4rem 1.5rem;}.fields-row{grid-template-columns:1fr;}
+  footer{flex-direction:column;text-align:center;}
+  .stat{border-right:none;border-bottom:1px solid rgba(255,255,255,0.07);}
+}
+</style>
+</head>
+<body>
+
+<!-- CURSOR ELEMENTS -->
+<div id="cur"></div>
+<div id="cur-b"></div>
+<div id="cur-dot"></div>
+<div id="cur-aura"></div>
+
+<!-- VIDEO BG -->
+<div class="video-bg">
+  <video autoplay muted loop playsinline preload="auto">
+    <source src="bg-video.mp4" type="video/mp4"/>
+  </video>
+</div>
+<div class="video-overlay"></div>
+
+<div class="content-layer">
+
+<!-- TOP BANNER -->
+<div class="amrit-banner">✦ Crafted with precision by <b>Amrit &amp; Co.</b> — Premium AI-Powered Solutions</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo"><div class="logo-gem"></div> aerizx</div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#writer">Write</a>
+    <a href="#languages">Languages</a>
+    <a href="#how">How It Works</a>
+  </div>
+  <button class="nav-cta" onclick="gotoSection('writer')">✦ Start Writing</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag"><div class="hero-tag-dot"></div> AI-Powered Content Platform</div>
+  <h1 class="hero-headline">
+    Words that <em>move</em>
+    <span class="line2">markets.</span>
+  </h1>
+  <p class="hero-sub"><span class="hero-brand">aerizx</span> transforms raw ideas into publication-quality blog content — deeply researched, SEO-optimized, and written to resonate.</p>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="gotoSection('writer')">✦ Start Writing Free</button>
+    <button class="btn-glass" onclick="gotoSection('features')">See Features</button>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">50+</div><div class="stat-label">Languages</div></div>
+    <div class="stat"><div class="stat-num">10×</div><div class="stat-label">Faster Output</div></div>
+    <div class="stat"><div class="stat-num">Top 1%</div><div class="stat-label">Writing Quality</div></div>
+    <div class="stat"><div class="stat-num">SEO</div><div class="stat-label">Optimised</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Topics</div></div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- FEATURES -->
+<section id="features">
+<div class="section">
+  <div class="ani"><div class="section-tag">Why aerizx</div>
+  <div class="section-title"><strong>Every word. Engineered</strong><br>for impact.</div>
+  <p class="section-desc">From startups to enterprises — content that converts, ranks, and builds authority.</p></div>
+  <div class="features-grid ani">
+    <div class="feature-card"><div class="feature-icon">✦</div><div class="feature-title">Publication-Grade Quality</div><div class="feature-desc">Top 1% writing — structured, insightful, free of AI fluff. Every post reads like a senior editor crafted it.</div></div>
+    <div class="feature-card"><div class="feature-icon">◎</div><div class="feature-title">Deep SEO Architecture</div><div class="feature-desc">Keywords woven naturally. Semantic variations, intent-matched headings, search-first structure — built in.</div></div>
+    <div class="feature-card"><div class="feature-icon">⌘</div><div class="feature-title">Real-Time Research Layer</div><div class="feature-desc">Grounded in current trends and data. No hallucinations — only factual, timely content your audience trusts.</div></div>
+    <div class="feature-card"><div class="feature-icon">◈</div><div class="feature-title">Multilingual Native Fluency</div><div class="feature-desc">50+ languages with authentic cultural tone. Not translated — genuinely crafted for each market.</div></div>
+    <div class="feature-card"><div class="feature-icon">⊕</div><div class="feature-title">Tone &amp; Voice Control</div><div class="feature-desc">Professional to playful. Your brand voice, perfectly preserved across every single post.</div></div>
+    <div class="feature-card"><div class="feature-icon">⬇</div><div class="feature-title">Premium PDF Export</div><div class="feature-desc">Download beautifully designed PDFs with dark layout, gold typography, and Amrit &amp; Co. branding.</div></div>
+  </div>
+</div>
+</section>
+
+<hr class="divider"/>
+
+<!-- WRITER -->
+<section id="writer">
+<div class="writer-wrap">
+  <div class="writer-header ani">
+    <div class="section-tag" style="text-align:center">AI Writer</div>
+    <div class="section-title" style="text-align:center">Generate your <em>next</em> <strong>masterpiece</strong></div>
+  </div>
+  <div class="writer-panel ani">
+    <div class="writer-input-side">
+      <div>
+        <label class="field-label">Blog Topic or Title</label>
+        <input id="topicInput" class="field-input" type="text" placeholder="e.g. The Future of AI in Healthcare 2025"/>
+      </div>
+      <div>
+        <label class="field-label">Additional Context (Optional)</label>
+        <textarea id="contextInput" class="field-textarea" placeholder="Target audience, key points, specific angle..."></textarea>
+      </div>
+      <div class="fields-row">
+        <div>
+          <label class="field-label">Language</label>
+          <select id="langSelect" class="field-select">
+            <option>English</option><option>Hindi</option><option>Spanish</option>
+            <option>French</option><option>German</option><option>Portuguese</option>
+            <option>Arabic</option><option>Chinese</option><option>Japanese</option>
+            <option>Korean</option><option>Italian</option><option>Russian</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Blog Length</label>
+          <select id="lengthSelect" class="field-select">
+            <option value="short">Short (~400 words)</option>
+            <option value="medium" selected>Medium (~800 words)</option>
+            <option value="long">Long (~1500 words)</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Tone of Voice</label>
+        <div class="tone-pills">
+          <button class="tone-pill active" data-tone="Professional">Professional</button>
+          <button class="tone-pill" data-tone="Conversational">Conversational</button>
+          <button class="tone-pill" data-tone="Authoritative">Authoritative</button>
+          <button class="tone-pill" data-tone="Inspirational">Inspirational</button>
+          <button class="tone-pill" data-tone="Analytical">Analytical</button>
+          <button class="tone-pill" data-tone="Storytelling">Storytelling</button>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Target Audience</label>
+        <input id="audienceInput" class="field-input" type="text" placeholder="e.g. B2B SaaS founders, healthcare professionals..."/>
+      </div>
+      <button class="generate-btn" id="generateBtn" onclick="generateBlog()">
+        <div class="spinner" id="spinner" style="display:none"></div>
+        <span id="btnText">✦ Generate Blog Post</span>
+      </button>
+    </div>
+    <div class="writer-output-side">
+      <div class="output-header">
+        <div class="output-title">Generated Output</div>
+        <div class="output-actions">
+          <button class="icon-btn" onclick="copyContent()">⎘ Copy</button>
+          <button class="icon-btn" onclick="downloadTxt()">↓ TXT</button>
+          <button class="icon-btn pdf-btn" onclick="downloadPdf()">⬇ PDF</button>
+        </div>
+      </div>
+      <div id="outputPlaceholder" class="output-placeholder">
+        <div class="placeholder-icon">✦</div>
+        <div class="placeholder-text">Your publication-quality blog post appears here. Fill in the form and press Generate.</div>
+      </div>
+      <div id="outputBody" class="output-body" style="display:none"></div>
+      <div id="outputMeta" class="output-meta" style="display:none">
+        <span id="wordCount">0 words</span>
+        <span id="readTime">0 min read</span>
+        <span id="langBadge">English</span>
+        <span>aerizx · Amrit &amp; Co.</span>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<hr class="divider"/>
+
+<!-- LANGUAGES -->
+<section id="languages">
+<div class="section">
+  <div class="ani">
+    <div class="section-tag">Global Reach</div>
+    <div class="section-title"><strong>Write in any language.</strong><br>Native fluency guaranteed.</div>
+    <p class="section-desc">Not translation — authentic content crafted in cultural context, idiom, and native voice.</p>
+    <div class="lang-grid">
+      <div class="lang-badge">🇺🇸 English</div><div class="lang-badge">🇮🇳 Hindi</div>
+      <div class="lang-badge">🇪🇸 Spanish</div><div class="lang-badge">🇫🇷 French</div>
+      <div class="lang-badge">🇩🇪 German</div><div class="lang-badge">🇧🇷 Portuguese</div>
+      <div class="lang-badge">🇸🇦 Arabic</div><div class="lang-badge">🇨🇳 Chinese</div>
+      <div class="lang-badge">🇯🇵 Japanese</div><div class="lang-badge">🇰🇷 Korean</div>
+      <div class="lang-badge">🇮🇹 Italian</div><div class="lang-badge">🇷🇺 Russian</div>
+      <div class="lang-badge">🇳🇱 Dutch</div><div class="lang-badge">🇸🇪 Swedish</div>
+      <div class="lang-badge">🇵🇱 Polish</div><div class="lang-badge">🇹🇷 Turkish</div>
+      <div class="lang-badge">+ 34 more</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<hr class="divider"/>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+<div class="section">
+  <div class="ani">
+    <div class="section-tag">Process</div>
+    <div class="section-title">From idea to <strong>published</strong><br>in under 60 seconds.</div>
+    <div class="steps">
+      <div class="step-card"><div class="step-num">01</div><div class="step-title">Enter your topic</div><div class="step-desc">Drop in a title, keyword, or brief. Set your audience, tone, and language for a perfectly calibrated result.</div></div>
+      <div class="step-card"><div class="step-num">02</div><div class="step-title">AI crafts the post</div><div class="step-desc">aerizx researches, structures, and writes a complete SEO-ready blog post from headline to conclusion.</div></div>
+      <div class="step-card"><div class="step-num">03</div><div class="step-title">Review &amp; refine</div><div class="step-desc">Read through, regenerate, or export as-is. Copy, download TXT, or save a premium-designed PDF instantly.</div></div>
+      <div class="step-card"><div class="step-num">04</div><div class="step-title">Publish &amp; rank</div><div class="step-desc">Paste into WordPress, Webflow, or Ghost — or share the PDF. Your content is ready to rank.</div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<hr class="divider"/>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">aerizx</div>
+  <div class="footer-amrit"><span>Developed by</span> Amrit &amp; Co.</div>
+  <div class="footer-copy">© 2025 aerizx — All rights reserved</div>
+</footer>
+
+</div><!-- end content-layer -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CUSTOM CURSOR — corner bracket reticle
+═══════════════════════════════════════════ */
+const cur   = document.getElementById('cur');
+const curB  = document.getElementById('cur-b');
+const curDot= document.getElementById('cur-dot');
+const aura  = document.getElementById('cur-aura');
+
+let mx=window.innerWidth/2, my=window.innerHeight/2;
+let ax=mx, ay=my;  // aura lerp
+
+// Crosshair snaps instantly
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cur.style.left   = mx+'px'; cur.style.top    = my+'px';
+  curB.style.left  = mx+'px'; curB.style.top   = my+'px';
+  curDot.style.left= mx+'px'; curDot.style.top = my+'px';
+});
+
+// Aura follows slowly
+(function lerpAura(){
+  ax += (mx-ax) * 0.07;
+  ay += (my-ay) * 0.07;
+  aura.style.left = ax+'px';
+  aura.style.top  = ay+'px';
+  requestAnimationFrame(lerpAura);
+})();
+
+// Hover state
+const hoverSel='button,a,.feature-card,.step-card,.lang-badge,.tone-pill,.stat,.icon-btn,.field-input,.field-textarea,.field-select';
+document.addEventListener('mouseover', e=>{ if(e.target.closest(hoverSel)) document.body.classList.add('c-hov'); });
+document.addEventListener('mouseout',  e=>{ if(e.target.closest(hoverSel)) document.body.classList.remove('c-hov'); });
+
+// Click state + shockwave
+document.addEventListener('mousedown', ()=> document.body.classList.add('c-clk'));
+document.addEventListener('mouseup',   ()=> document.body.classList.remove('c-clk'));
+document.addEventListener('click', e => {
+  const w = document.createElement('div');
+  w.className='c-wave';
+  w.style.left=e.clientX+'px'; w.style.top=e.clientY+'px';
+  document.body.appendChild(w);
+  setTimeout(()=>w.remove(), 650);
+});
+
+/* ═══════════════════════════════════════════
+   ALL SECTIONS ANIMATE IN ON PAGE LOAD
+   — no scroll trigger, all visible from open
+═══════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  const items = document.querySelectorAll('.ani');
+  items.forEach((el, i) => {
+    setTimeout(() => el.classList.add('in'), 300 + i * 120);
+  });
+});
+
+/* ═══════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════ */
+function gotoSection(id){ document.getElementById(id).scrollIntoView({behavior:'smooth'}); }
+
+document.querySelectorAll('.tone-pill').forEach(p => p.addEventListener('click', () => {
+  document.querySelectorAll('.tone-pill').forEach(x => x.classList.remove('active'));
+  p.classList.add('active');
+}));
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3200);
+}
+function copyContent(){
+  const b=document.getElementById('outputBody');
+  if(!b.innerText.trim()){toast('Nothing to copy yet.');return;}
+  navigator.clipboard.writeText(b.innerText).then(()=>toast('✓ Copied to clipboard'));
+}
+function downloadTxt(){
+  const b=document.getElementById('outputBody');
+  if(!b.innerText.trim()){toast('Generate a blog post first.');return;}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([b.innerText],{type:'text/plain'}));
+  a.download='aerizx-blog.txt'; a.click();
+  toast('✓ Downloaded as TXT');
+}
+
+/* ═══════════════════════════════════════════
+   PREMIUM PDF
+═══════════════════════════════════════════ */
+function downloadPdf(){
+  const b=document.getElementById('outputBody');
+  if(!b.innerText.trim()){toast('Generate a blog post first.');return;}
+  toast('⏳ Building your premium PDF...');
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W=210,H=297,ml=22,mr=22,mt=32,mb=26,cw=W-ml-mr;
+    const BG=[10,12,24],GOLD=[212,168,67],WHITE=[255,255,255],
+          LGRAY=[185,180,170],MGRAY=[130,125,115],GOLD2=[180,140,55];
+    let page=1;
+    const startPage=()=>{
+      doc.setFillColor(...BG);doc.rect(0,0,W,H,'F');
+      doc.setFillColor(...GOLD2);doc.rect(0,0,4,H,'F');
+      doc.setFillColor(...GOLD);doc.rect(0,0,W,3,'F');
+      doc.setFillColor(...GOLD);doc.rect(0,H-3,W,3,'F');
+      doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2],0.2);doc.setLineWidth(0.3);doc.rect(8,7,W-16,H-14);
+    };
+    const drawHeader=()=>{
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...GOLD);
+      doc.text('aerizx  AI  BLOG  WRITER',ml+4,16);
+      doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...MGRAY);
+      doc.text('by  AMRIT  &  CO.',ml+4,21);
+      const d=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+      doc.text(d,W-mr,16,{align:'right'});
+      doc.setDrawColor(...GOLD);doc.setLineWidth(0.35);doc.line(ml+4,25,W-mr,25);
+    };
+    const drawFooter=()=>{
+      doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2],0.4);doc.setLineWidth(0.25);doc.line(ml+4,H-mb,W-mr,H-mb);
+      doc.setFont('courier','normal');doc.setFontSize(5.5);doc.setTextColor(...MGRAY);
+      doc.text('Generated by aerizx · Amrit & Co. · Premium AI Content Platform',ml+4,H-mb+5);
+      doc.text(`Page ${page}`,W-mr,H-mb+5,{align:'right'});page++;
+    };
+    const newPage=()=>{drawFooter();doc.addPage();startPage();drawHeader();return mt;};
+    startPage();drawHeader();
+    let y=mt+6;
+    const rawLines=b.innerText.split('\n');let first=true;
+    for(let i=0;i<rawLines.length;i++){
+      const line=rawLines[i].trim();if(!line){y+=2.5;continue;}
+      if(first){
+        first=false;
+        doc.setFont('times','bolditalic');doc.setFontSize(24);doc.setTextColor(...WHITE);
+        const tL=doc.splitTextToSize(line,cw-4);
+        if(y+tL.length*12>H-mb){y=newPage();}
+        doc.text(tL,ml+4,y);y+=tL.length*11+5;
+        doc.setDrawColor(...GOLD);doc.setLineWidth(0.5);doc.line(ml+4,y,ml+60,y);y+=6;
+        const wc=document.getElementById('wordCount').textContent;
+        const rt=document.getElementById('readTime').textContent;
+        const lg=document.getElementById('langBadge').textContent;
+        doc.setFont('courier','normal');doc.setFontSize(6);doc.setTextColor(...MGRAY);
+        doc.text(`${wc}  ·  ${rt}  ·  ${lg.toUpperCase()}  ·  AERIZX`,ml+4,y);y+=8;continue;
+      }
+      const isCaps=line===line.toUpperCase()&&/[A-Z]/.test(line)&&line.length>3&&line.length<90;
+      const prevBlank=!rawLines[i-1]||!rawLines[i-1].trim();
+      if(isCaps){
+        y+=4;if(y+10>H-mb){y=newPage();}
+        doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...GOLD);
+        doc.text(line,ml+4,y);y+=2;
+        doc.setDrawColor(...GOLD);doc.setLineWidth(0.15);
+        doc.line(ml+4,y,ml+4+Math.min(doc.getTextWidth(line),60),y);y+=5;
+      } else if(prevBlank&&line.length<75&&/^[A-Z\d]/.test(line)){
+        y+=2;if(y+8>H-mb){y=newPage();}
+        doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(230,205,155);
+        const sl=doc.splitTextToSize(line,cw-4);doc.text(sl,ml+4,y);y+=sl.length*5+2;
+      } else {
+        doc.setFont('times','normal');doc.setFontSize(10.5);doc.setTextColor(...LGRAY);
+        const wr=doc.splitTextToSize(line,cw-4);
+        if(y+wr.length*5.5>H-mb){y=newPage();}
+        doc.text(wr,ml+4,y);y+=wr.length*5.4+1.5;
+      }
+    }
+    drawFooter();
+    const slug=(rawLines[0]||'blog').slice(0,38).toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    doc.save(`aerizx-${slug}.pdf`);
+    toast('✓ PDF downloaded!');
+  }catch(err){console.error(err);toast('⚠ PDF error — please try again.');}
+}
+
+/* ═══════════════════════════════════════════
+   GENERATE BLOG — correct Anthropic headers
+═══════════════════════════════════════════ */
+async function generateBlog(){
+  const topic=document.getElementById('topicInput').value.trim();
+  if(!topic){toast('⚠ Please enter a topic first.');return;}
+  const ctx=document.getElementById('contextInput').value.trim();
+  const lang=document.getElementById('langSelect').value;
+  const len=document.getElementById('lengthSelect').value;
+  const tone=document.querySelector('.tone-pill.active')?.dataset.tone||'Professional';
+  const audience=document.getElementById('audienceInput').value.trim();
+  const lenMap={short:'~400 words',medium:'~800 words',long:'~1500 words'};
+  const btn=document.getElementById('generateBtn'),sp=document.getElementById('spinner'),bt=document.getElementById('btnText');
+  btn.disabled=true; sp.style.display='block'; bt.textContent='Crafting your post...';
+  document.getElementById('outputPlaceholder').style.display='none';
+  const ob=document.getElementById('outputBody');
+  ob.style.display='block'; ob.innerHTML='<span class="typing-cursor"></span>';
+  document.getElementById('outputMeta').style.display='none';
+
+  const sys=`You are an elite AI blog writer in the top 1% of professional content creators. Write publication-quality, deeply insightful, SEO-optimized blog posts that sound 100% human.\n\nRULES:\n- Write in ${lang} with native cultural fluency\n- Target length: ${lenMap[len]}\n- Tone: ${tone}\n- Target audience: ${audience||'general business professionals'}\n- Use Markdown: # H1, ## H2, ### H3, **bold**, *italic*\n- Start with a powerful curiosity-driven headline\n- Write a gripping 2-line hook\n- Organize into clear H2/H3 sections\n- Include examples, analogies, statistics\n- End with a strong action-driven conclusion\n- Zero fluff — every sentence delivers value`;
+
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:4096,
+        system:sys,
+        messages:[{role:'user',content:`Write a complete blog post about: "${topic}"${ctx?`\n\nContext: ${ctx}`:''}`}]
+      })
+    });
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      throw new Error(err?.error?.message||`HTTP ${res.status}`);
+    }
+    const data=await res.json();
+    const text=data.content?.map(x=>x.text||'').join('')||'No content generated.';
+    ob.innerHTML=mdToHtml(text);
+    const wc=text.split(/\s+/).filter(Boolean).length, rt=Math.ceil(wc/200);
+    document.getElementById('wordCount').textContent=`${wc} words`;
+    document.getElementById('readTime').textContent=`${rt} min read`;
+    document.getElementById('langBadge').textContent=lang;
+    document.getElementById('outputMeta').style.display='flex';
+    toast('✓ Blog post generated!');
+  }catch(e){
+    ob.innerHTML=`<p style="color:#e05555;font-family:'DM Mono',monospace;font-size:0.8rem;line-height:1.9;">⚠ ${e.message}<br/><br/>Check your connection and try again.</p>`;
+    console.error(e);
+  }
+  btn.disabled=false; sp.style.display='none'; bt.textContent='✦ Generate Blog Post';
+}
+
+function mdToHtml(md){
+  return md
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .split('\n\n')
+    .map(b=>{b=b.trim();if(!b)return'';if(/^<(h[123]|li)/.test(b))return b.startsWith('<li>')?`<ul>${b}</ul>`:b;return`<p>${b.replace(/\n/g,' ')}</p>`;})
+    .join('\n');
+}
+
+document.getElementById('topicInput').addEventListener('keydown',e=>{if(e.key==='Enter')generateBlog();});
+</script>
+</body>
+</html>
