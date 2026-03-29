@@ -677,7 +677,7 @@ async function generateBlog(){
   const audience=document.getElementById('audienceInput').value.trim();
   const lenMap={short:'~400 words',medium:'~800 words',long:'~1500 words'};
   const btn=document.getElementById('generateBtn'),sp=document.getElementById('spinner'),bt=document.getElementById('btnText');
-  btn.disabled=true; sp.style.display='block'; bt.textContent='Crafting your post...';
+  btn.disabled=false; sp.style.display='none'; bt.textContent='✦ Generate Blog Post';
   document.getElementById('outputPlaceholder').style.display='none';
   const ob=document.getElementById('outputBody');
   ob.style.display='block'; ob.innerHTML='<span class="typing-cursor"></span>';
@@ -685,38 +685,40 @@ async function generateBlog(){
 
   const sys=`You are an elite AI blog writer in the top 1% of professional content creators. Write publication-quality, deeply insightful, SEO-optimized blog posts that sound 100% human.\n\nRULES:\n- Write in ${lang} with native cultural fluency\n- Target length: ${lenMap[len]}\n- Tone: ${tone}\n- Target audience: ${audience||'general business professionals'}\n- Use Markdown: # H1, ## H2, ### H3, **bold**, *italic*\n- Start with a powerful curiosity-driven headline\n- Write a gripping 2-line hook\n- Organize into clear H2/H3 sections\n- Include examples, analogies, statistics\n- End with a strong action-driven conclusion\n- Zero fluff — every sentence delivers value`;
 
-  try{
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-opus-4-5',
-        max_tokens:4096,
-        system:sys,
-        messages:[{role:'user',content:`Write a complete blog post about: "${topic}"${ctx?`\n\nContext: ${ctx}`:''}`}]
-      })
-    });
-    if(!res.ok){
-      const err=await res.json().catch(()=>({}));
-      throw new Error(err?.error?.message||`HTTP ${res.status}`);
-    }
-    const data=await res.json();
-    const text=data.content?.map(x=>x.text||'').join('')||'No content generated.';
-    ob.innerHTML=mdToHtml(text);
-    const wc=text.split(/\s+/).filter(Boolean).length, rt=Math.ceil(wc/200);
-    document.getElementById('wordCount').textContent=`${wc} words`;
-    document.getElementById('readTime').textContent=`${rt} min read`;
-    document.getElementById('langBadge').textContent=lang;
-    document.getElementById('outputMeta').style.display='flex';
-    toast('✓ Blog post generated!');
-  }catch(e){
-    ob.innerHTML=`<p style="color:#e05555;font-family:'DM Mono',monospace;font-size:0.8rem;line-height:1.9;">⚠ ${e.message}<br/><br/>Check your connection and try again.</p>`;
-    console.error(e);
-  }
+  // DEMO MODE (NO API)
+const demoText = `# ${topic}
+
+Artificial Intelligence is rapidly transforming industries across the globe. From automating repetitive tasks to enhancing creativity, AI is redefining how businesses operate.
+
+## Why This Matters
+AI is no longer a futuristic concept — it is actively shaping decision-making, customer experiences, and operational efficiency.
+
+## Key Benefits
+- Faster content creation
+- Improved productivity
+- Scalable solutions for businesses
+
+## Real-World Impact
+Companies leveraging AI are seeing exponential growth in efficiency and innovation. Whether it's healthcare, finance, or marketing — AI is becoming the backbone.
+
+## Conclusion
+AI is not just a tool — it’s a competitive advantage. Businesses that adopt early will lead the future.
+
+*This is a demo AI-generated blog. Real AI integration coming soon.*`;
+
+ob.innerHTML = mdToHtml(demoText);
+
+// META INFO
+const wc = demoText.split(/\s+/).filter(Boolean).length;
+const rt = Math.ceil(wc / 200);
+
+document.getElementById('wordCount').textContent = `${wc} words`;
+document.getElementById('readTime').textContent = `${rt} min read`;
+document.getElementById('langBadge').textContent = lang;
+
+document.getElementById('outputMeta').style.display = 'flex';
+
+toast('✓ Demo blog generated!');
   btn.disabled=false; sp.style.display='none'; bt.textContent='✦ Generate Blog Post';
 }
 
